@@ -8,9 +8,8 @@ import xml.etree.ElementTree as ET
 import lxml.html as lh
 import sys
 #conn = libvirt.open(None)
-class virtual_mach:
+class instance_info:
     def __init__(self):
-        self.conn = libvirt.openReadOnly('qemu:///system')
         self.log_message = ''
         self.vcpu_time=0
         self.node_cpu_time=0
@@ -20,6 +19,21 @@ class virtual_mach:
         self.total_vcpu_valuepre=0
         self.total_pcpu_value=0
         self.total_vcpu_value=0
+        self.net_need_update=True
+        
+class virtual_mach:
+    def __init__(self):
+        self.conn = libvirt.openReadOnly('qemu:///system')
+        #self.log_message = ''
+        #self.vcpu_time=0
+        #self.node_cpu_time=0
+        #self.cpustatflag=1
+        #self.pcputime=0
+        #self.total_pcpu_valuepre=0
+        #self.total_vcpu_valuepre=0
+        #self.total_pcpu_value=0
+        #self.total_vcpu_value=0
+        self.instance_info_list=[]
 
         if self.conn == None:
             print 'Failed to open connection to the hypervisor'
@@ -31,21 +45,26 @@ class virtual_mach:
         except:
             print 'Failed to find the main domain'
             sys.exit(1)
-    def do_log_routine(self,number):
+    def create_instances_space_data(self,list_domains):
+        for i in range(0,len(list_domains)):
+            self.instance_info_list.append(instance_info)
+        
+
+    def do_log_routine(self,i,number):
         net_cards_list=[]
-        self.log_message = "************doms %d***************\nLog time:"%number
-        self.log_message += time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
-        self.domainx = self.conn.lookupByID(number)
-        domain_info = self.domainx.info()
-        self.log_message+="\nDomain Name :"
-        xml_data =  self.domainx.XMLDesc(4)#search type
+        self.instance_info_list[i].log_message = "************doms %d***************\nLog time:"%number
+        self.instance_info_list[i].log_message += time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+        self.instance_info_list[i].domainx = self.conn.lookupByID(number)
+        #domain_info = self.instance_info_list[i].domainx.info()
+        self.instance_info_list[i].log_message+="\nDomain Name :"
+        xml_data =  self.instance_info_list[i].domainx.XMLDesc(4)#search type
         afte_xml = etree.fromstringlist(xml_data)
-        self.log_message += afte_xml.findtext('name') 
-        self.log_message += '\nmachine status: %d'%self.domainx.isActive()
-        self.log_message += '\nuuid :'+afte_xml.findtext('uuid')
-        self.log_message += '\nmemory total: '+afte_xml.findtext('memory')
-        self.log_message += '\ncurrent Memory: '+afte_xml.findtext('currentMemory')
-        self.log_message += '\nCPU number: '+afte_xml.findtext('vcpu')
+        self.instance_info_list[i].log_message += afte_xml.findtext('name') 
+        self.instance_info_list[i].log_message += '\nmachine status: %d'%self.instance_info_list[i].domainx.isActive()
+        self.instance_info_list[i].log_message += '\nuuid :'+afte_xml.findtext('uuid')
+        self.instance_info_list[i].log_message += '\nmemory total: '+afte_xml.findtext('memory')
+        self.instance_info_list[i].log_message += '\ncurrent Memory: '+afte_xml.findtext('currentMemory')
+        self.instance_info_list[i].log_message += '\nCPU number: '+afte_xml.findtext('vcpu')
         #print self.log_message
         #*******************************#
         #root = tree.getroot()
@@ -58,14 +77,14 @@ class virtual_mach:
                 for i in range(0,len(list)):
                     if list[i][0] =='network' or list[i][0]=='path':
                         continue
-                    self.log_message +='\n'+list[i][0]+': '+list[i][1]
+                    self.instance_info_list[i].log_message +='\n'+list[i][0]+': '+list[i][1]
         for elem in tree.iter(tag='target'):
             if 'dev' in elem.attrib:
                 #print elem.attrib['dev']
                 list_get= elem.attrib.items()
                 for i in range(0,len(list_get)):
                     if list_get[i][1][:3] == 'vne':
-                        self.log_message += '\nvnet name: '+list_get[i][1]
+                        self.instance_info_list[i].log_message += '\nvnet name: '+list_get[i][1]
                         net_cards_list.append(list_get[i][1])
             else:
                 continue
@@ -93,9 +112,9 @@ class virtual_mach:
     def do_aut_net(self,a,b,c,d):
         """put the rules when we need to log for the rate of the network"""
         return True
-    def write_log(self):
-        if self.net_need_update == True:
-            print self.log_message
+    def write_log(self,i):
+       # if self.instance_info_list[i].net_need_update == True:
+            print self.instance_info_list[i].log_message
     def cpu_mem_statistic(self):
         #This is  statistic only for virtual machine
         dic_value =  self.domainx.getCPUStats(1,0)
@@ -183,10 +202,11 @@ if __name__ == '__main__':
     main_w = virtual_mach()
     while True:
         list_doms = main_w.list_dom_ID()
+        main_w.create_instances_space_data(list_doms)
         for i in range(0,len(list_doms)):
-            net_card_name = main_w.do_log_routine(list_doms[i])
-            main_w.net_card_statistic(net_card_name)
-            main_w.cpu_mem_statistic()
-            main_w.write_log()
+            net_card_name = main_w.do_log_routine(i,list_doms[i])
+            #main_w.net_card_statistic(net_card_name)
+            #main_w.cpu_mem_statistic()
+            main_w.write_log(i)
             #handle_net_work()
         time.sleep(3)
