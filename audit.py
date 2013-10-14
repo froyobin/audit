@@ -49,6 +49,9 @@ class virtual_mach:
         for i in range(0,len(list_domains)):
             self.instance_info_list.append(instance_info)
         
+    def do_aut_net(self,a,b,c,d):
+        """put the rules when we need to log for the rate of the network"""
+        return True
 
     def do_log_routine(self,i,number):
         net_cards_list=[]
@@ -89,7 +92,7 @@ class virtual_mach:
             else:
                 continue
         return list_get[i][1]
-    def net_card_statistic(self,net_cards):
+    def net_card_statistic(self,j,net_cards):
             #print self.log_message
             #net_de = self.conn.networkLookupByName('default')
             #print self.conn.interfaceLookupByName('vnet0')
@@ -99,19 +102,16 @@ class virtual_mach:
                     'rx drops: ','tx bytes: ','tx packages: ','tx errors: ',\
                     'tx drops: ']
 
-            network_info = self.domainx.interfaceStats(net_cards)
+            network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
             time.sleep(1)
             rx_b = network_info[0]
             tx_b = network_info[4]           
-            network_info = self.domainx.interfaceStats(net_cards)
+            network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
             for i in range(0,len(network_info)):
-                self.log_message += '\n'+item_list[i]+str(network_info[i])
-            self.net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
-            self.log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
-            self.log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
-    def do_aut_net(self,a,b,c,d):
-        """put the rules when we need to log for the rate of the network"""
-        return True
+                self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
+            self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
+            self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
+            self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
             print self.instance_info_list[i].log_message
@@ -205,7 +205,7 @@ if __name__ == '__main__':
         main_w.create_instances_space_data(list_doms)
         for i in range(0,len(list_doms)):
             net_card_name = main_w.do_log_routine(i,list_doms[i])
-            #main_w.net_card_statistic(net_card_name)
+            main_w.net_card_statistic(i,net_card_name)
             #main_w.cpu_mem_statistic()
             main_w.write_log(i)
             #handle_net_work()
