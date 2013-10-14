@@ -13,15 +13,18 @@ class instance_info:
         self.log_message = ''
         self.vcpu_time=0
         self.node_cpu_time=0
-        self.cpustatflag=1
         self.pcputime=0
         self.total_pcpu_valuepre=0
-        self.total_vcpu_valuepre=0
+        #self.total_vcpu_valuepre=0
         self.total_pcpu_value=0
-        self.total_vcpu_value=0
         self.net_need_update=True
-        
+        self.total_vcpu_value=0
+        self.total_vcpu_valuepre=0
+        self.cpustatflag=1
+
+
 class virtual_mach:
+    terminated = False;
     def __init__(self):
         self.conn = libvirt.openReadOnly('qemu:///system')
         #self.log_message = ''
@@ -47,7 +50,7 @@ class virtual_mach:
             sys.exit(1)
     def create_instances_space_data(self,list_domains):
         for i in range(0,len(list_domains)):
-            self.instance_info_list.append(instance_info)
+            self.instance_info_list.append(instance_info())
         
     def do_aut_net(self,a,b,c,d):
         """put the rules when we need to log for the rate of the network"""
@@ -57,13 +60,25 @@ class virtual_mach:
         net_cards_list=[]
         self.instance_info_list[i].log_message = "************doms %d***************\nLog time:"%number
         self.instance_info_list[i].log_message += time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
-        self.instance_info_list[i].domainx = self.conn.lookupByID(number)
+        try:
+            self.instance_info_list[i].domainx = self.conn.lookupByID(number)
+        except:
+            self.terminated=True
+            return []
         #domain_info = self.instance_info_list[i].domainx.info()
         self.instance_info_list[i].log_message+="\nDomain Name :"
-        xml_data =  self.instance_info_list[i].domainx.XMLDesc(4)#search type
+        try:
+            xml_data =  self.instance_info_list[i].domainx.XMLDesc(4)#search type
+        except:
+            self.terminated=True
+            return []
         afte_xml = etree.fromstringlist(xml_data)
         self.instance_info_list[i].log_message += afte_xml.findtext('name') 
-        self.instance_info_list[i].log_message += '\nmachine status: %d'%self.instance_info_list[i].domainx.isActive()
+        try:
+            self.instance_info_list[i].log_message += '\nmachine status: %d'%self.instance_info_list[i].domainx.isActive()
+        except:
+            self.terminated=True
+            return []
         self.instance_info_list[i].log_message += '\nuuid :'+afte_xml.findtext('uuid')
         self.instance_info_list[i].log_message += '\nmemory total: '+afte_xml.findtext('memory')
         self.instance_info_list[i].log_message += '\ncurrent Memory: '+afte_xml.findtext('currentMemory')
@@ -77,10 +92,10 @@ class virtual_mach:
         for j in range(0,len(checklist)):
             for elem in tree.iter(tag=checklist[j]):
                 list= elem.attrib.items()
-                for i in range(0,len(list)):
-                    if list[i][0] =='network' or list[i][0]=='path':
+                for p in range(0,len(list)):
+                    if list[p][0] =='network' or list[p][0]=='path':
                         continue
-                    self.instance_info_list[i].log_message +='\n'+list[i][0]+': '+list[i][1]
+                    self.instance_info_list[i].log_message +='\n'+list[p][0]+': '+list[p][1]
         for elem in tree.iter(tag='target'):
             if 'dev' in elem.attrib:
                 #print elem.attrib['dev']
@@ -101,12 +116,20 @@ class virtual_mach:
             item_list = ['rx bytes: ','rx packages: ','rx errors: ',\
                     'rx drops: ','tx bytes: ','tx packages: ','tx errors: ',\
                     'tx drops: ']
+            try:
+                network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
+            except:
+                self.terminated = True
+                return
 
-            network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
             time.sleep(1)
             rx_b = network_info[0]
             tx_b = network_info[4]           
-            network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
+            try:
+                network_info = self.instance_info_list[j].domainx.interfaceStats(net_cards)
+            except:
+                self.terminated = True
+                return
             for i in range(0,len(network_info)):
                 self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
@@ -115,14 +138,26 @@ class virtual_mach:
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
             print self.instance_info_list[i].log_message
-    def cpu_mem_statistic(self):
+    def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
-        dic_value =  self.domainx.getCPUStats(1,0)
-        self.total_vcpu_valuepre = self.total_vcpu_value
-        self.total_vcpu_value = dic_value[0]['cpu_time']
+        try:
+            dic_value =  self.instance_info_list[i].domainx.getCPUStats(1,0)
+        except:
+            self.terminated = True
+            return
+        #self.instance_info_list[i].total_vcpu_valuepre = self.instance_info_list[i].total_vcpu_value
+        self.instance_info_list[i].total_vcpu_valuepre = dic_value[0]['cpu_time']
+        time.sleep(1)
+        try:
+            dic_value =  self.instance_info_list[i].domainx.getCPUStats(1,0)
+        except:
+            self.terminated = True
+            return
+        #self.instance_info_list[i].total_vcpu_valuepre = self.instance_info_list[i].total_vcpu_value
+        self.instance_info_list[i].total_vcpu_value = dic_value[0]['cpu_time']
         usage = 0
-        if self.cpustatflag == 0:
-            usage =  (self.total_vcpu_value-self.total_vcpu_valuepre)//10000000
+        #if self.instance_info_list[i].cpustatflag == 0:
+        usage =  (self.instance_info_list[i].total_vcpu_value-self.instance_info_list[i].total_vcpu_valuepre)//100000
    
         #dic_value_list =  self.conn.getCPUStats(0,0)
         #print dic_value_list
@@ -135,8 +170,11 @@ class virtual_mach:
         #    print self.total_pcpu_value-self.total_pcpu_valuepre
  #           usage = (self.total_vcpu_value-self.total_vcpu_valuepre)/(self.total_pcpu_value-self.total_pcpu_valuepre)
           #  print usage*100
-        self.cpustatflag = 0;
-        self.log_message += "\nCPU usage:   " +str(usage)
+        self.instance_info_list[i].cpustatflag = 0;
+        self.instance_info_list[i].log_message += "\nCPU usage:   " +str(usage)
+        #print "****************dom   %i****************" %i
+        #print "\nCPU usage:"+str(usage)
+        #print "****************************************"
         #print dic_value
         #value_list = dic_value.values()
         #total_node_cpu_time = value_list[0]+value_list[2]+value_list[1]+value_list[3]
@@ -199,14 +237,21 @@ class virtual_mach:
     #list_NIC()
    #print vcpus(self);
 if __name__ == '__main__':
-    main_w = virtual_mach()
+    
     while True:
+        main_w = virtual_mach()
         list_doms = main_w.list_dom_ID()
         main_w.create_instances_space_data(list_doms)
         for i in range(0,len(list_doms)):
-            net_card_name = main_w.do_log_routine(i,list_doms[i])
-            main_w.net_card_statistic(i,net_card_name)
-            #main_w.cpu_mem_statistic()
-            main_w.write_log(i)
+            if main_w.terminated == False:
+                net_card_name = main_w.do_log_routine(i,list_doms[i])
+            if main_w.terminated == False:
+                main_w.net_card_statistic(i,net_card_name)
+            if main_w.terminated == False:
+                main_w.cpu_mem_statistic(i)
+            
+            if main_w.terminated == False:
+                main_w.write_log(i)
             #handle_net_work()
+
         time.sleep(3)
