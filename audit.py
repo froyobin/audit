@@ -39,6 +39,7 @@ class instance_info:
         self.net_rxrate = 0
         self.net_txrate = 0
         self.cpuusage = 0
+        self.disk_stat = []
 class virtual_mach:
     terminated = False;
     def __init__(self):
@@ -271,6 +272,36 @@ class virtual_mach:
 #	def handle_net_work():
     #list_NIC()
    #print vcpus(self);
+    def handle_block_devices(self,i):
+       #tree = ET.ElementTree(self.instance_info_list[i].xml_data)#here we use afte_xml watch out!
+       root = ET.fromstring(self.instance_info_list[i].xml_data)#here we use afte_xml watch out!
+       devices_root = root.find('devices')
+       for disks in devices_root.findall('disk'):
+           disk_data = disks[2].attrib
+           try:
+               ret = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
+               self.instance_info_list[i].disk_stat.append(ret)
+               #print ret
+           except:
+            self.terminated = True
+            return
+           self.instance_info_list[i].log_message += "\n..................%s....................." %(disk_data['dev'])
+           self.instance_info_list[i].log_message += "\ntotal read write time: " +str(ret['wr_total_times'])
+           self.instance_info_list[i].log_message += "\nread operations: " +str(ret['rd_operations'])
+           self.instance_info_list[i].log_message += "\nflush_total_times: " +str(ret['flush_total_times'])
+           self.instance_info_list[i].log_message += "\nrd_total_times: " +str(ret['rd_total_times'])
+           self.instance_info_list[i].log_message += "\nrd_bytes: " +str(ret['rd_bytes'])
+           self.instance_info_list[i].log_message += "\nflush_operations: " +str(ret['flush_operations'])
+           self.instance_info_list[i].log_message += "\nwr_operations: " +str(ret['wr_operations'])
+           self.instance_info_list[i].log_message += "\nwr_bytes: " +str(ret['wr_bytes'])
+           self.instance_info_list[i].log_message += "\n..........................................."
+
+               
+       return 
+
+
+
+
 if __name__ == '__main__':
     
     while True:
@@ -284,9 +315,10 @@ if __name__ == '__main__':
                 main_w.net_card_statistic(i,net_card_name)
             if main_w.terminated == False:
                 main_w.cpu_mem_statistic(i)
-            
             if main_w.terminated == False:
-                main_w.write_log(i)
-            #handle_net_work()
+                main_w.handle_block_devices(i)
+            if main_w.terminated == False:
+               main_w.write_log(i)
+              # handle_net_work()
 
         time.sleep(3)
