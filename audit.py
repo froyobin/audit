@@ -23,6 +23,22 @@ class instance_info:
         self.cpustatflag=1
 
 
+
+
+        self.log_time = ''
+        self.cpu_time = 0
+        self.domain_name = ''
+        self.machine_state = 0
+        self.instance_uuid = ''
+        self.instance_memtotal = ''
+        self.instance_memcur = ''
+        self.cpu_num = ''
+        self.net_cards = []
+        self.net_card_rxtx= [0]*8
+        self.hardware = [[] for i in range(6)]
+        self.net_rxrate = 0
+        self.net_txrate = 0
+        self.cpuusage = 0
 class virtual_mach:
     terminated = False;
     def __init__(self):
@@ -60,35 +76,47 @@ class virtual_mach:
         net_cards_list=[]
         self.instance_info_list[i].log_message = "************doms %d***************\nLog time:"%number
         self.instance_info_list[i].log_message += time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+        self.instance_info_list[i].log_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+
         try:
             self.instance_info_list[i].domainx = self.conn.lookupByID(number)
         except:
             self.terminated=True
             return []
-        #domain_info = self.instance_info_list[i].domainx.info()
-        self.instance_info_list[i].log_message+="\nDomain Name :"
+        
+        domain_info = self.instance_info_list[i].domainx.info()
+        self.instance_info_list[i].cpu_time = '\nCPU Time:   %d (S)'%((domain_info[4])/1000000000L)
+        self.instance_info_list[i].log_message += self.instance_info_list[i].cpu_time
+        self.instance_info_list[i].log_message+="\nInstance Name :"
         try:
             xml_data =  self.instance_info_list[i].domainx.XMLDesc(4)#search type
+            self.instance_info_list[i].xml_data = xml_data
         except:
             self.terminated=True
             return []
-        afte_xml = etree.fromstringlist(xml_data)
-        self.instance_info_list[i].log_message += afte_xml.findtext('name') 
+        after_xml = etree.fromstringlist(xml_data)
+        self.instance_info_list[i].domain_name = after_xml.findtext('name')
+        self.instance_info_list[i].log_message += self.instance_info_list[i].domain_name 
         try:
-            self.instance_info_list[i].log_message += '\nmachine status: %d'%self.instance_info_list[i].domainx.isActive()
+            self.instance_info_list[i].machine_state= self.instance_info_list[i].domainx.isActive()
         except:
             self.terminated=True
             return []
-        self.instance_info_list[i].log_message += '\nuuid :'+afte_xml.findtext('uuid')
-        self.instance_info_list[i].log_message += '\nmemory total: '+afte_xml.findtext('memory')
-        self.instance_info_list[i].log_message += '\ncurrent Memory: '+afte_xml.findtext('currentMemory')
-        self.instance_info_list[i].log_message += '\nCPU number: '+afte_xml.findtext('vcpu')
+        self.instance_info_list[i].log_message +=  '\nmachine status: %d' %self.instance_info_list[i].machine_state
+        self.instance_info_list[i].instance_uuid = after_xml.findtext('uuid')
+        self.instance_info_list[i].log_message +=  '\nuuid: '+self.instance_info_list[i].instance_uuid
+        self.instance_info_list[i].instance_memtotal= after_xml.findtext('memory')
+        self.instance_info_list[i].log_message += '\nmemory total: '+after_xml.findtext('memory')
+        self.instance_info_list[i].instance_memcur = after_xml.findtext('currentMemory')
+        self.instance_info_list[i].log_message += '\ncurrent Memory: '+after_xml.findtext('currentMemory')
+        self.instance_info_list[i].cpu_num= after_xml.findtext('vcpu')
+        self.instance_info_list[i].log_message += '\nCPU number: '+after_xml.findtext('vcpu')
         #print self.log_message
         #*******************************#
         #root = tree.getroot()
-        checklist = ['type','boot','source','mac']
+        checklist = ['type','boot','source','mac','target dev']
         #nowantsee = ['network','path']
-        tree = ET.ElementTree(afte_xml)#here we use afte_xml watch out!
+        tree = ET.ElementTree(after_xml)#here we use afte_xml watch out!
         for j in range(0,len(checklist)):
             for elem in tree.iter(tag=checklist[j]):
                 list= elem.attrib.items()
@@ -96,6 +124,8 @@ class virtual_mach:
                     if list[p][0] =='network' or list[p][0]=='path':
                         continue
                     self.instance_info_list[i].log_message +='\n'+list[p][0]+': '+list[p][1]
+                    device_string = list[p][0]+':'+list[p][1]
+                    self.instance_info_list[i].hardware[j].append(device_string)
         for elem in tree.iter(tag='target'):
             if 'dev' in elem.attrib:
                 #print elem.attrib['dev']
@@ -104,9 +134,10 @@ class virtual_mach:
                     if list_get[i][1][:3] == 'vne':
                         self.instance_info_list[i].log_message += '\nvnet name: '+list_get[i][1]
                         net_cards_list.append(list_get[i][1])
+                        self.instance_info_list[i].net_cards.append(list_get[i][1])
             else:
                 continue
-        return list_get[i][1]
+        return list_get[i][1] ##*****only return the last net card information********
     def net_card_statistic(self,j,net_cards):
             #print self.log_message
             #net_de = self.conn.networkLookupByName('default')
@@ -132,8 +163,11 @@ class virtual_mach:
                 return
             for i in range(0,len(network_info)):
                 self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
+                self.instance_info_list[j].net_card_rxtx[i] = str(network_info[i])
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
             self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
+            self.instance_info_list[j].net_rxrate  = ((network_info[0]-rx_b)/60/2)
+            self.instance_info_list[j].net_txrate =  ((network_info[4]-tx_b)/60/2)
             self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
@@ -171,6 +205,7 @@ class virtual_mach:
  #           usage = (self.total_vcpu_value-self.total_vcpu_valuepre)/(self.total_pcpu_value-self.total_pcpu_valuepre)
           #  print usage*100
         self.instance_info_list[i].cpustatflag = 0;
+        self.instance_info_list[i].cpuusage = usage
         self.instance_info_list[i].log_message += "\nCPU usage:   " +str(usage)
         #print "****************dom   %i****************" %i
         #print "\nCPU usage:"+str(usage)
