@@ -127,6 +127,7 @@ class virtual_mach:
                     self.instance_info_list[i].log_message +='\n'+list[p][0]+': '+list[p][1]
                     device_string = list[p][0]+':'+list[p][1]
                     self.instance_info_list[i].hardware[j].append(device_string)
+        """
         for elem in tree.iter(tag='target'):
             if 'dev' in elem.attrib:
                 #print elem.attrib['dev']
@@ -138,8 +139,19 @@ class virtual_mach:
                         self.instance_info_list[i].net_cards.append(list_get[i][1])
             else:
                 continue
-        return list_get[i][1] ##*****only return the last net card information********
+        """
+        for interfaces in tree.find('devices').findall('interface'):
+            print interfaces.find('target').attrib
+       #root = ET.fromstring(self.instance_info_list[i].xml_data)#here we use afte_xml watch out!
+       #devices_root = root.find('devices')
+
+        return [] ##*****only return the last net card information********
     def net_card_statistic(self,j,net_cards):
+        self.instance_info_list[j].net_card_info = [[0 for jj in xrange(0,10)] for ii in xrange(0,len(self.instance_info_list[j].net_cards))]
+        print self.instance_info_list[j].net_cards
+        for names in self.instance_info_list[j].net_cards:
+            self.do_net_card_statistic(self,j,names)
+    def do_net_card_statistic(self,j,net_cards):
             #print self.log_message
             #net_de = self.conn.networkLookupByName('default')
             #print self.conn.interfaceLookupByName('vnet0')
@@ -162,17 +174,20 @@ class virtual_mach:
             except:
                 self.terminated = True
                 return
+            self.instance_info_list[j].log_message += "********net_cards****************"
             for i in range(0,len(network_info)):
                 self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
-                self.instance_info_list[j].net_card_rxtx[i] = str(network_info[i])
+                self.instance_info_list[j].net_card_info[j][i] = str(network_info[i])
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
             self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
-            self.instance_info_list[j].net_rxrate  = ((network_info[0]-rx_b)/60/2)
-            self.instance_info_list[j].net_txrate =  ((network_info[4]-tx_b)/60/2)
+            self.instance_info_list[j].net_card_info[j][8]  = ((network_info[0]-rx_b)/60/2)
+            self.instance_info_list[j].net_card_info[j][9] =  ((network_info[4]-tx_b)/60/2)
             self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
+            self.instance_info_list[j].log_message +="*********************************"
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
-            print self.instance_info_list[i].log_message
+         #   print self.instance_info_list[i].log_message
+            print ""
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
         try:
