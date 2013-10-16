@@ -75,7 +75,7 @@ class virtual_mach:
         return True
 
     def do_log_routine(self,i,number):
-        net_cards_list=[]
+        #net_cards_list=[]
         self.instance_info_list[i].log_message = "************doms %d***************\nLog time:"%number
         self.instance_info_list[i].log_message += time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
         self.instance_info_list[i].log_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
@@ -87,8 +87,8 @@ class virtual_mach:
             return []
         
         domain_info = self.instance_info_list[i].domainx.info()
-        self.instance_info_list[i].cpu_time = '\nCPU Time:   %d (S)'%((domain_info[4])/1000000000L)
-        self.instance_info_list[i].log_message += self.instance_info_list[i].cpu_time
+        self.instance_info_list[i].cpu_time = ((domain_info[4])/1000000000L)
+        self.instance_info_list[i].log_message += '\nCPU Time: %d (S)' %self.instance_info_list[i].cpu_time
         self.instance_info_list[i].log_message+="\nInstance Name :"
         try:
             xml_data =  self.instance_info_list[i].domainx.XMLDesc(4)#search type
@@ -191,8 +191,8 @@ class virtual_mach:
             self.instance_info_list[j].net_card_info_list.append(net_card_info)
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
-            print self.instance_info_list[i].log_message
-            print ""
+           print self.instance_info_list[i].log_message
+           print ""
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
         try:
@@ -335,8 +335,8 @@ def offer_instance_data():
             main_w.cpu_mem_statistic(i)
         if main_w.terminated == False:
             main_w.handle_block_devices(i)
-        if main_w.terminated == False:
-            main_w.write_log(i)
+        #if main_w.terminated == False:
+        #    main_w.write_log(i)
     return main_w
 
 
