@@ -3,6 +3,7 @@ import time
 from offer_data import offer_instance_data
 import offer_data
 import audit_db
+import string
 HOST_IP='192.168.172.10'
 USER='AuditUser'
 PASSWD='1234'
@@ -29,17 +30,18 @@ class core_work:
                     continue
                 else:
                     self.instance_need_handle(old[i],"DELINS")
+                    self.disk_need_handle(old[i],"DISCONNECT")
                     old.remove(old[i])
                     #print len(old)
                     #print len(new)
             except IndexError:
                     #print i
                     self.instance_need_handle(old[i],"DELINS")
+                    self.disk_need_handle(old[i],"DISCONNECT")
                     old.remove(old[i])
 
 
 
-                #self.instance_need_handle(old[-1],"DELINS")
     def instance_to_db_prepare(self,instance_info_list,number):
         #print "*************all**************"
         #for ins in self.new:
@@ -66,12 +68,14 @@ class core_work:
                     continue
                 else:
                     self.instance_need_handle(new[i],"ADDNEW")
+                    self.disk_need_handle(new[i],"ATTACHED")
                     old.insert(i,new[i])
                 
             except IndexError:
                     print "ADD"
                     print i
                     self.instance_need_handle(new[i],"ADDNEW")
+                    self.disk_need_handle(new[i],"ATTACHED")
                     old.append(new[i])
                     #old.remove(old[i])
                     #print "report except"
@@ -87,14 +91,41 @@ class core_work:
         
         case_dic[cases]()
 
-        
+    
+    def disk_need_handle(self,detail,state):
+        mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
+        print detail.disk_stat
+        for diskinfo in detail.disk_stat:
+            store_list = []
+            store_list.append(detail.instance_uuid)
+            store_list.append((diskinfo['wr_total_times'])/1000000000L)
+            store_list.append(diskinfo['rd_operations'])
+            store_list.append((diskinfo['flush_total_times'])/10000L)
+            store_list.append(diskinfo['rd_total_times']/10000L)
+            store_list.append(diskinfo['rd_bytes']/1000L)
+            store_list.append(diskinfo['flush_operations'])
+            store_list.append(diskinfo['wr_operations'])
+            store_list.append(diskinfo['wr_bytes']/1000L)
+            store_list.append(diskinfo['diskname'])
+            if state== "ATTACHED":
+                store_list.append("ATTACHED")
+            if state =="DISCONNECT":
+                store_list.append("DISCONNECT")
+            store_list.append(detail.log_time)
+            mydb.store_in_db_disk_state(store_list)
+            print len(store_list)
+            if state == 5:
+                print "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname']
+            if state == -1:
+                print "DISCONNECT DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname']
+        mydb.disconnect()
+
     def handleinstance(self,detail,state):
         store_list=[]
         store_list.append(detail.instance_uuid)
         store_list.append(detail.log_time)
         store_list.append(detail.cpu_time)
         store_list.append(detail.domain_name)
-        #store_list.append(detail.machine_state)
         store_list.append(state)
         store_list.append(detail.instance_memtotal)
         store_list.append(detail.instance_memcur)

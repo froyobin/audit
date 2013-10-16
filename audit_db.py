@@ -24,9 +24,16 @@ class auditDB:
                 MEM_TOTAL,MEM_CUR,\
                 CPU_NUM,ARCH,\
                 MACHINE,CPU_USAGE) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
-        #self.cur.execute('insert into audit_static_data(UUID,LOGED_TIME) values(%s,%s)',store_data)
         self.conn.commit()
     
+
+    def store_in_db_disk_state(self,store_data):
+        self.cur.execute('insert into disk_status(UUID,TOTAL_RW_TIME,\
+                READ_OP,FLUSH_TOTAL_TIMES,\
+                RD_TOTAL_TIMES,RD_KB,FLUSH_OPS,\
+                WR_OPS,WR_KB,DISKNAME,DISK_STAT,LOGTIME) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
+
+        self.conn.commit()
     def disconnect(self):
         self.cur.close()
         self.conn.close()

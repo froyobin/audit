@@ -301,6 +301,7 @@ class virtual_mach:
            disk_data = disks[2].attrib
            try:
                ret = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
+               ret['diskname']=disk_data['dev']
                self.instance_info_list[i].disk_stat.append(ret)
                #print ret
            except:
@@ -317,7 +318,6 @@ class virtual_mach:
            self.instance_info_list[i].log_message += "\nwr_bytes: " +str(ret['wr_bytes'])
            self.instance_info_list[i].log_message += "\n..........................................."
 
-               
        return 
 
 
