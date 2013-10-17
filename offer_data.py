@@ -197,9 +197,10 @@ class virtual_mach:
             self.instance_info_list[j].net_card_info_list.append(net_card_info)
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
-           print self.instance_info_list[i].log_message
+           #print self.instance_info_list[i].log_message
            #sys.stdout.write('.')
            #sys.stdout.flush()
+           pass
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
         try:
