@@ -4,22 +4,25 @@ from offer_data import offer_instance_data
 import offer_data
 import audit_db
 import sys
-HOST_IP='192.168.172.10'
-USER='AuditUser'
-PASSWD='1234'
-PORT=3306
-DB='audit_db'
-DEBUG=True
-INSTANCE_MAX_NUM=256
-
-
-
+import ConfigParser
+import log
+import string
 
 class core_work:
     first = True
     def __init__(self):
         self.pre= offer_data.virtual_mach()
         self.ins_timestamp={}
+        cf=ConfigParser.ConfigParser()
+        cf.read('config.ini')
+        self.HOST_IP = cf.get("database","HOST_IP")
+        self.USER = cf.get("database","USER")
+        self.PASSWD = cf.get("database","PASSWD")
+        self.PORT = string.atoi(cf.get("database","PORT"))
+        self.DB = cf.get("database","DB")
+        self.DEBUG = cf.get("debug","DEBUG")
+        self.interval = string.atoi(cf.get("audit","interval"))
+        self.myloghandle = log.mylog("audit.log")
     def removeinstance(self,instance):
         self.instance_need_handle(instance,"DELINS")
         self.disk_need_handle(instance,"DISCONNECT")
@@ -44,7 +47,7 @@ class core_work:
                     try:
                         del(self.ins_timestamp[old[i].instance_uuid])
                     except KeyError:
-                        print "trying to del non-exist timestamp"
+                        self.myloghandle.write_log("trying to del non-exist timestamp","INFO")
                         pass
                     old.remove(old[i])
             except IndexError:
@@ -52,10 +55,9 @@ class core_work:
                     
                     
                     try:
-                        print old[i].instance_uuid
                         del(self.ins_timestamp[old[i].instance_uuid])
                     except KeyError:
-                        print "trying to del non-exist timestamp"
+                        self.myloghandle.write_log("trying to del non-exist timestamp","INFO")
                         pass
                     
                     old.remove(old[i])
@@ -91,7 +93,7 @@ class core_work:
                     
                 
             except IndexError:
-                    print "ADD",
+                    self.myloghandle.write_log("ADD","DEBUG");
                     self.newaddinstance(new[i],"NEW")
                     #self.ins_timestamp[new[i].instance_uuid]=time.time()
                     self.updatetime(new[i].instance_uuid)
@@ -113,7 +115,7 @@ class core_work:
     
     def net_need_handle(self,detail,state):
         
-        mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
+        mydb = audit_db.auditDB(self.HOST_IP,self.USER,self.PASSWD,self.PORT,self.DB)
         i=0
         for card_names in detail.net_cards:
             store_list = []
@@ -143,16 +145,15 @@ class core_work:
             """
             mydb.store_in_db_net_state(store_list)
             if state == "ATTACHED":
-                print " ADD NEW NET CARD %s into DATABASE SUCCESSFULLY"  % card_names['name']
+                self.myloghandle.write_log(" ADD NEW NET CARD %s into DATABASE SUCCESSFULLY"  % card_names['name'],"INFO")
             if state == "DISCONNECT":
-                print "DISCONNECT NET CARD %s into DATABASE SUCCESSFULLY"  %card_names['name']
+                self.myloghandle.write_log("DISCONNECT NET CARD %s into DATABASE SUCCESSFULLY"  %card_names['name'],"INFO")
         mydb.disconnect()
 
 
     def disk_need_handle(self,detail,state):
        
-        mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
-        #print detail.disk_stat
+        mydb = audit_db.auditDB(self.HOST_IP,self.USER,self.PASSWD,self.PORT,self.DB)
         for diskinfo in detail.disk_stat:
             store_list = []
             store_list.append(detail.instance_uuid)
@@ -177,9 +178,9 @@ class core_work:
             store_list.append(detail.log_time)
             mydb.store_in_db_disk_state(store_list)
             if state == 5:
-                print "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname']
+                self.myloghandle.write_log( "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname'],"INFO")
             if state == -1:
-                print "DISCONNECT DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname']
+                self.myloghandle.write_log("DISCONNECT DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname'],"INFO")
         mydb.disconnect()
 
     def handleinstance(self,detail,state):
@@ -198,15 +199,15 @@ class core_work:
         store_list.append(detail.hardware[0][0].split(':')[1])
         store_list.append(detail.hardware[0][1].split(':')[1])
         store_list.append(detail.cpu_time)
-        mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
+        mydb = audit_db.auditDB(self.HOST_IP,self.USER,self.PASSWD,self.PORT,self.DB)
         mydb.store_in_db_static(store_list)
         mydb.disconnect()
         if state == 5:
-            print "ADD NEW INSTANCE %s into DATABASE SUCCESSFULLY"  % detail.domain_name
+            self.myloghandle.write_log("ADD NEW INSTANCE %s into DATABASE SUCCESSFULLY"  % detail.domain_name,"INFO")
         if state == -1:
-            print "TERMINATE INSTANCE %s into DATABASE SUCCESSFULLY"  % detail.domain_name
+            self.myloghandle.write_log("TERMINATE INSTANCE %s into DATABASE SUCCESSFULLY"  % detail.domain_name,"INFO")
         if state == 1:
-            print "GENERAL INSTANCE %s LOG" % detail.instance_uuid
+            self.myloghandle.write_log("GENERAL INSTANCE %s INFO" % detail.instance_uuid,"INFO")
 
         
         
@@ -215,13 +216,13 @@ class core_work:
 
 
     def debug_log(self,msg):
-        if DEBUG == True:
+        if self.DEBUG == True:
             sys.stdout.write(msg)
             sys.stdout.flush()
 
 
     def unknow(self):
-        print "ERROR UNKNOW command"
+        self.myloghandle.write_log("ERROR UNKNOW command","ERROR")
 
     
     def loged_to_db(self,instance):
@@ -243,13 +244,20 @@ class core_work:
     def expire_time_check(self,old,new):
         timenow = time.time()
         for (k,updatedtime) in self.ins_timestamp.items():
-            if timenow-updatedtime >10:
+            if timenow-updatedtime >(60*self.interval):
                 self.log_instance(k)
             else:
-                print "not now"
                 continue
 
     def inspect_each_instance(self,old,new):
+        
+        
+        
+        
+        
+        
+        
+        
         
         self.expire_time_check(old,new)
 
@@ -261,7 +269,6 @@ class core_work:
             self.instance_to_db_prepare(tmp.instance_info_list,number)
         else:
             if len(self.new) < len(self.old):
-                print "DEC"
                 self.delinstance_to_db_prepare()
             else:
                 self.inspect_each_instance(self.old,self.new)
@@ -282,6 +289,7 @@ class core_work:
                 pre = offer_instance_data()
                 self.old = pre.instance_info_list
                 self.create_timestamp()
+                self.myloghandle.write_log("System started.....","INFO")
                 continue
             else:
                 tmp = offer_instance_data()
