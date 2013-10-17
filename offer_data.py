@@ -7,6 +7,7 @@ from lxml import etree
 import xml.etree.ElementTree as ET
 import lxml.html as lh
 import sys
+import string
 #conn = libvirt.open(None)
 class instance_info:
     def __init__(self):
@@ -145,7 +146,10 @@ class virtual_mach:
 
             #for value in tmplist:
             #    print value
-            self.instance_info_list[i].net_cards.append(interfaces.find('target').attrib['dev'])
+            tmp_dic={}
+            tmp_dic['dev']=interfaces.find('target').attrib['dev']
+            tmp_dic['name']=interfaces.find('alias').attrib['name']
+            self.instance_info_list[i].net_cards.append(tmp_dic)
        #root = ET.fromstring(self.instance_info_list[i].xml_data)#here we use afte_xml watch out!
        #devices_root = root.find('devices')
 
@@ -153,7 +157,7 @@ class virtual_mach:
     def net_card_statistic(self,j,net_cards):
         #net_card_info = [[0 for jj in xrange(0,10)] for ii in xrange(0,len(self.instance_info_list[j].net_cards))]
         for names in self.instance_info_list[j].net_cards:
-            self.do_net_card_statistic(j,names)
+            self.do_net_card_statistic(j,names['dev'])
     def do_net_card_statistic(self,j,net_cards):
             #print self.log_message
             #net_de = self.conn.networkLookupByName('default')
@@ -181,19 +185,21 @@ class virtual_mach:
             self.instance_info_list[j].log_message += "\n........%s..............." %net_cards
             for i in range(0,len(network_info)):
                 self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
-                net_card_info[i] = str(network_info[i])
+                #net_card_info[i] = str(network_info[i])
+                net_card_info[i] = (network_info[i])
+
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
             self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
-            net_card_info[8]  = ((network_info[0]-rx_b)/60/2)
-            net_card_info[9] =  ((network_info[4]-tx_b)/60/2)
+            net_card_info[8]  = string.atof('%.2f' %((network_info[0]-rx_b)/60/2))
+            net_card_info[9] =  string.atof('%.2f' %((network_info[4]-tx_b)/60/2))
             self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
             self.instance_info_list[j].log_message +="\n................................."
             self.instance_info_list[j].net_card_info_list.append(net_card_info)
     def write_log(self,i):
        # if self.instance_info_list[i].net_need_update == True:
-           #print self.instance_info_list[i].log_message
-           #print self.instance_info_list[i].instance_uuid
-           print '.'
+           print self.instance_info_list[i].log_message
+           #sys.stdout.write('.')
+           #sys.stdout.flush()
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
         try:
@@ -346,7 +352,6 @@ if __name__ == '__main__':
     
     while True:
         offer_instance_data()
-        """
         main_w = virtual_mach()
         list_doms = main_w.list_dom_ID()
         main_w.create_instances_space_data(list_doms)
@@ -361,6 +366,4 @@ if __name__ == '__main__':
                 main_w.handle_block_devices(i)
             if main_w.terminated == False:
                main_w.write_log(i)
-              # handle_net_work()
-        """
         time.sleep(3)

@@ -32,8 +32,15 @@ class auditDB:
                 READ_OP,FLUSH_TOTAL_TIMES,\
                 RD_TOTAL_TIMES,RD_KB,FLUSH_OPS,\
                 WR_OPS,WR_KB,DISKNAME,DISK_STAT,LOGTIME) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
-
         self.conn.commit()
+    
+    def store_in_db_net_state(self,store_data):
+        self.cur.execute('insert into net_cards(UUID,LOG_TIME,RX_KB,\
+                RX_PACKAGES,RX_ERROR,RX_DROP,\
+                TX_KB,TX_PACKAGES,TX_ERROR,TX_DROP,\
+                RX_RATE_KB,TX_RATE_KB,DEV_NAME,ALIAS_NAME,STATE) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
+        self.conn.commit()
+                
     def disconnect(self):
         self.cur.close()
         self.conn.close()

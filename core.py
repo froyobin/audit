@@ -4,12 +4,13 @@ from offer_data import offer_instance_data
 import offer_data
 import audit_db
 import string
+import sys
 HOST_IP='192.168.172.10'
 USER='AuditUser'
 PASSWD='1234'
 PORT=3306
 DB='audit_db'
-
+DEBUG=True
 class core_work:
     first = True
     def __init__(self):
@@ -31,6 +32,7 @@ class core_work:
                 else:
                     self.instance_need_handle(old[i],"DELINS")
                     self.disk_need_handle(old[i],"DISCONNECT")
+                    self.net_need_handle(old[i],"DISCONNECT")
                     old.remove(old[i])
                     #print len(old)
                     #print len(new)
@@ -38,6 +40,7 @@ class core_work:
                     #print i
                     self.instance_need_handle(old[i],"DELINS")
                     self.disk_need_handle(old[i],"DISCONNECT")
+                    self.net_need_handle(old[i],"DISCONNECT")
                     old.remove(old[i])
 
 
@@ -69,13 +72,14 @@ class core_work:
                 else:
                     self.instance_need_handle(new[i],"ADDNEW")
                     self.disk_need_handle(new[i],"ATTACHED")
+                    self.net_need_handle(new[i],"ATTACHED")
                     old.insert(i,new[i])
                 
             except IndexError:
-                    print "ADD"
-                    print i
+                    print "ADD",
                     self.instance_need_handle(new[i],"ADDNEW")
                     self.disk_need_handle(new[i],"ATTACHED")
+                    self.net_need_handle(new[i],"ATTACHED")
                     old.append(new[i])
                     #old.remove(old[i])
                     #print "report except"
@@ -92,7 +96,44 @@ class core_work:
         case_dic[cases]()
 
     
+
+    
+    def net_need_handle(self,detail,state):
+        
+        mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
+        i=0
+        for card_names in detail.net_cards:
+            store_list = []
+            net_card_info = detail.net_card_info_list[i]
+            store_list.append(detail.instance_uuid)
+            store_list.append(detail.log_time)
+            store_list.append(net_card_info[0]/1000)
+            store_list.append(net_card_info[1])
+            store_list.append(net_card_info[2])
+            store_list.append(net_card_info[3])
+            store_list.append(net_card_info[4]/1000)
+            store_list.append(net_card_info[5])
+            store_list.append(net_card_info[6])
+            store_list.append(net_card_info[7])
+            store_list.append(net_card_info[8]/1000)
+            store_list.append(net_card_info[9]/1000)
+            store_list.append(card_names['dev'])
+            store_list.append(card_names['name'])
+            if state== "ATTACHED":
+                store_list.append("ATTACHED")
+            if state =="DISCONNECT":
+                store_list.append("DISCONNECT")
+            mydb.store_in_db_net_state(store_list)
+            if state == "ATTACHED":
+                print " ADD NEW NET CARD %s into DATABASE SUCCESSFULLY"  % card_names['name']
+            if state == "DISCONNECT":
+                print "DISCONNECT NET CARD %s into DATABASE SUCCESSFULLY"  %card_names['name']
+        mydb.disconnect()
+
+
+
     def disk_need_handle(self,detail,state):
+       
         mydb = audit_db.auditDB(HOST_IP,USER,PASSWD,PORT,DB)
         print detail.disk_stat
         for diskinfo in detail.disk_stat:
@@ -113,7 +154,6 @@ class core_work:
                 store_list.append("DISCONNECT")
             store_list.append(detail.log_time)
             mydb.store_in_db_disk_state(store_list)
-            print len(store_list)
             if state == 5:
                 print "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname']
             if state == -1:
@@ -147,6 +187,10 @@ class core_work:
 
 
 
+    def debug_log(self,msg):
+        if DEBUG == True:
+            sys.stdout.write(msg)
+            sys.stdout.flush()
 
 
     def unknow(self):
@@ -159,11 +203,9 @@ class core_work:
         else:
             if len(self.new) < len(self.old):
                 self.delinstance_to_db_prepare()
-            
-                print "DEC"
             else:
                 #print tmp.instance_info_list[1].hardware[0][0].split(':')[1]
-                print "OK"
+                self.debug_log("do something")
         return
 
     def core_loop(self):
@@ -173,12 +215,11 @@ class core_work:
                 self.first = False
                 pre = offer_instance_data()
                 self.old = pre.instance_info_list
-                print self.first
                 continue
             else:
                 tmp = offer_instance_data()
                 self.new = tmp.instance_info_list
-                print "do something"
+                print "do something",
                 """
                  do something
                 """
