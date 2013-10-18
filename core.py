@@ -16,18 +16,35 @@ class core_work:
         self.ins_timestamp={}
         cf=ConfigParser.ConfigParser()
         cf.read('config.ini')
+        
         self.HOST_IP = cf.get("database","HOST_IP")
         self.USER = cf.get("database","USER")
         self.PASSWD = cf.get("database","PASSWD")
         self.PORT = string.atoi(cf.get("database","PORT"))
         self.DB = cf.get("database","DB")
         self.DEBUG = cf.get("debug","DEBUG")
-        self.MAXDKRD = string.atoi(cf.get("audit","maxdkrd"))
-        self.MAXDKWR = string.atoi(cf.get("audit","maxdkwr"))
-        self.MAXNTRD = string.atoi(cf.get("audit","maxntrd"))
-        self.MAXNTWR = string.atoi(cf.get("audit","maxntwr"))
-        self.interval = string.atoi(cf.get("audit","interval"))
+        
+        
+        self.interval = string.atoi(cf.get("speed","interval"))
+        paramlist=self.load_all_params(cf)
+        self.speedparam = paramlist[0][:]
+        self.cpuparam = paramlist[1][:]
+        print self.speedparam
+        print self.cpuparam
         self.myloghandle = log.mylog("audit.log")
+
+    def load_all_params(self,cf):
+        returnlist=[]
+        categroy = ["speed","CPU"]
+        i=0
+        param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage']]
+        for paramlist in param_list_all:
+            innlist=[]
+            for param in paramlist:
+                innlist.append(string.atoi(cf.get(categroy[i],param)))
+            i = i+1
+            returnlist.append(innlist)
+        return returnlist
     def removeinstance(self,instance):
         self.instance_need_handle(instance,"DELINS")
         self.disk_need_handle(instance,"DISCONNECT")
@@ -304,7 +321,7 @@ class core_work:
         for i in range(0,len(new)):
             #check disk first
             for disk in new[i].disk_stat:
-                if disk['wr_speed']>self.MAXDKWR or disk['rd_speed'] >self.MAXDKRD:
+                if disk['wr_speed']>self.speedparam[1] or disk['rd_speed'] >self.speedparam[0]:
                     self.add_to_log_list(i)
                     self.myloghandle.write_log("exceed block speed detected!","INFO")
                     # any of the disk that meet the requirement will cause the whole instance to be logged
@@ -314,7 +331,7 @@ class core_work:
                 continue
         # new we check the network
             for netcard in new[i].net_card_info_list:
-                if (netcard[8]>self.MAXNTRD) or (netcard[9]>self.MAXNTWR):
+                if (netcard[8]>self.speedparam[2]) or (netcard[9]>self.speedparam[3]):
                     net_found=True
                     self.myloghandle.write_log("exceed net speed detected!","INFO")
                     self.add_to_log_list(i)
