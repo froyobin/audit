@@ -200,7 +200,10 @@ class virtual_mach:
            #print self.instance_info_list[i].log_message
            #sys.stdout.write('.')
            #sys.stdout.flush()
-           pass
+           if __name__=='__main__':
+               print self.instance_info_list[i].log_message
+           else:
+               pass
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
         try:
@@ -307,13 +310,18 @@ class virtual_mach:
        for disks in devices_root.findall('disk'):
            disk_data = disks[2].attrib
            try:
+               retpre = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
+               time.sleep(2)
                ret = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
                ret['diskname']=disk_data['dev']
+               ret['wr_speed']= string.atof('%.2f'%((ret['wr_bytes']-retpre['wr_bytes'])/120000L))
+               ret['rd_speed']= string.atof('%.2f'%((ret['rd_bytes']-retpre['rd_bytes'])/120000L))
                self.instance_info_list[i].disk_stat.append(ret)
-               #print ret
            except:
-            self.terminated = True
-            return
+               s=sys.exc_info()
+               print "error %s at line %d" % (s[1],s[2].tb_lineno)
+               self.terminated = True
+               return
            self.instance_info_list[i].log_message += "\n..................%s....................." %(disk_data['dev'])
            self.instance_info_list[i].log_message += "\ntotal read write time: " +str(ret['wr_total_times'])
            self.instance_info_list[i].log_message += "\nread operations: " +str(ret['rd_operations'])
@@ -323,6 +331,8 @@ class virtual_mach:
            self.instance_info_list[i].log_message += "\nflush_operations: " +str(ret['flush_operations'])
            self.instance_info_list[i].log_message += "\nwr_operations: " +str(ret['wr_operations'])
            self.instance_info_list[i].log_message += "\nwr_bytes: " +str(ret['wr_bytes'])
+           self.instance_info_list[i].log_message += "\nwr_speed: " +str(ret['wr_speed'])
+           self.instance_info_list[i].log_message += "\nrd_speed: " +str(ret['rd_speed'])
            self.instance_info_list[i].log_message += "\n..........................................."
 
        return 

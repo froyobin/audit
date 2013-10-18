@@ -12,6 +12,7 @@ class core_work:
     first = True
     def __init__(self):
         self.pre= offer_data.virtual_mach()
+        self.need_logged_instance = []
         self.ins_timestamp={}
         cf=ConfigParser.ConfigParser()
         cf.read('config.ini')
@@ -21,6 +22,10 @@ class core_work:
         self.PORT = string.atoi(cf.get("database","PORT"))
         self.DB = cf.get("database","DB")
         self.DEBUG = cf.get("debug","DEBUG")
+        self.MAXDKRD = string.atoi(cf.get("audit","maxdkrd"))
+        self.MAXDKWR = string.atoi(cf.get("audit","maxdkwr"))
+        self.MAXNTDD = string.atoi(cf.get("audit","maxntrd"))
+        self.MAXNTWR = string.atoi(cf.get("audit","maxntwr"))
         self.interval = string.atoi(cf.get("audit","interval"))
         self.myloghandle = log.mylog("audit.log")
     def removeinstance(self,instance):
@@ -176,6 +181,8 @@ class core_work:
                 store_list.append("INUSE")
             """
             store_list.append(detail.log_time)
+            store_list.append(diskinfo['wr_speed'])
+            store_list.append(diskinfo['rd_speed'])
             mydb.store_in_db_disk_state(store_list)
             if state == 5:
                 self.myloghandle.write_log( "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname'],"INFO")
@@ -249,14 +256,30 @@ class core_work:
             else:
                 continue
 
+
+    def check_by_compare(self,old,new):
+        i=0
+        for eachinstance in new:
+            if len(eachinstance.disk_stat)>len(old[i].disk_stat):
+                self.myloghandle.write_log("VOLUME ADD DETECTED","INFO")
+                self.need_loged_instance.append(i)
+            if len(eachinstance.disk_stat)<len(old[i].disk_stat):
+                self.myloghandle.write_log("VOLUME REMOVE DETECTED","INFO")
+                self.need_loged_instance.append(i)
+            i = i+1
+
+    
+    def check_by_statistics(self,old,new):
+        
+        pass
+        #return self.need_loged_instance
     def inspect_each_instance(self,old,new):
         
-        
-        
-        
-        
-        
-        
+        #we first check the static values of each instance
+            #self.myloghandle.write_log("new %d"%len(eachinstance.disk_stat),"INFO")
+            #self.myloghandle.write_log("old %d"%len(old[i].disk_stat),"INFO")
+            
+        self.check_by_statistics(old,new)
         
         
         self.expire_time_check(old,new)
@@ -301,6 +324,7 @@ class core_work:
                 self.check_instance_start_stop(tmp,pre)
 
                 pre= tmp
+                self.old = pre.instance_info_list
             time.sleep(2)
 if __name__ == '__main__':
     do_work = core_work()

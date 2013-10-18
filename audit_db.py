@@ -31,7 +31,8 @@ class auditDB:
         self.cur.execute('insert into disk_status(UUID,TOTAL_RW_TIME,\
                 READ_OP,FLUSH_TOTAL_TIMES,\
                 RD_TOTAL_TIMES,RD_KB,FLUSH_OPS,\
-                WR_OPS,WR_KB,DISKNAME,DISK_STAT,LOGTIME) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
+                WR_OPS,WR_KB,DISKNAME,DISK_STAT,LOGTIME,\
+                DISK_WR_SPEED,DISK_RD_SPEED) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',store_data)
         self.conn.commit()
     
     def store_in_db_net_state(self,store_data):
