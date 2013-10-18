@@ -7,6 +7,8 @@ import sys
 import ConfigParser
 import log
 import string
+import signal
+import os
 
 class core_work:
     first = True
@@ -405,6 +407,13 @@ class core_work:
                 pre= tmp
                 self.old = pre.instance_info_list
             time.sleep(2)
+def signalhandle(signum,fram):
+    print "USER TERMINATED"
+    os.system("stty -F /dev/tty echo") 
+    os.system("stty -F /dev/tty -cbreak")
+
+    sys.exit()
 if __name__ == '__main__':
+    signal.signal(signal.SIGINT,signalhandle)
     do_work = core_work()
     do_work.core_loop()
