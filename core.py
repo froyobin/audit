@@ -12,7 +12,7 @@ class core_work:
     first = True
     def __init__(self):
         self.pre= offer_data.virtual_mach()
-        self.need_logged_instance = []
+        self.need_loged_instance = []
         self.ins_timestamp={}
         cf=ConfigParser.ConfigParser()
         cf.read('config.ini')
@@ -24,7 +24,7 @@ class core_work:
         self.DEBUG = cf.get("debug","DEBUG")
         self.MAXDKRD = string.atoi(cf.get("audit","maxdkrd"))
         self.MAXDKWR = string.atoi(cf.get("audit","maxdkwr"))
-        self.MAXNTDD = string.atoi(cf.get("audit","maxntrd"))
+        self.MAXNTRD = string.atoi(cf.get("audit","maxntrd"))
         self.MAXNTWR = string.atoi(cf.get("audit","maxntwr"))
         self.interval = string.atoi(cf.get("audit","interval"))
         self.myloghandle = log.mylog("audit.log")
@@ -257,31 +257,85 @@ class core_work:
                 continue
 
 
-    def check_by_compare(self,old,new):
-        i=0
-        for eachinstance in new:
-            if len(eachinstance.disk_stat)>len(old[i].disk_stat):
+    def check_by_comparison(self,old,new):
+        disk_status_add_remove=False
+        for i in range(0,len(new)):
+        
+            #########disk add remove check#############
+            if len(new[i].disk_stat)>len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME ADD DETECTED","INFO")
-                self.need_loged_instance.append(i)
-            if len(eachinstance.disk_stat)<len(old[i].disk_stat):
+                self.add_to_log_list(i)
+                disk_status_add_remove = True
+                continue
+            if len(new[i].disk_stat)<len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME REMOVE DETECTED","INFO")
-                self.need_loged_instance.append(i)
-            i = i+1
+                self.add_to_log_list(i)
+                disk_status_add_remove = True
+                continue
+            #########disk add remove check END#############
+            if disk_status_add_remove == True:
+                continue
+            
+            
+
+
 
     
-    def check_by_statistics(self,old,new):
+    def add_to_log_list(self,i):
+        try :
+            self.need_loged_instance.index(i)
+        except ValueError:
+            self.need_loged_instance.append(i)
+
+
+    def check_by_statistics(self,new):
+        i=0       
+        disk_found=False
+        net_found = False
+        for i in range(0,len(new)):
+            #check disk first
+            for disk in new[i].disk_stat:
+                if disk['wr_speed']>self.MAXDKWR or disk['rd_speed'] >self.MAXDKRD:
+                    self.add_to_log_list(i)
+                    self.myloghandle.write_log("exceed block speed detected!","INFO")
+                    # any of the disk that meet the requirement will cause the whole instance to be logged
+                    disk_found = True
+                    break
+            if disk_found == True:
+                continue
+        # new we check the network
+            for netcard in new[i].net_card_info_list:
+                print netcard[9]
+                if (netcard[8]>self.MAXNTRD) or (netcard[9]>self.MAXNTWR):
+                    net_found=True
+                    self.myloghandle.write_log("exceed net speed detected!","INFO")
+                    self.add_to_log_list(i)
+                    break
+                if net_found== True:
+                    continue
         
-        pass
         #return self.need_loged_instance
+
+    def loged_each_instance(self,new):
+        
+        print self.need_loged_instance
+
+        del(self.need_loged_instance[:])
+
+
     def inspect_each_instance(self,old,new):
         
         #we first check the static values of each instance
             #self.myloghandle.write_log("new %d"%len(eachinstance.disk_stat),"INFO")
             #self.myloghandle.write_log("old %d"%len(old[i].disk_stat),"INFO")
             
-        self.check_by_statistics(old,new)
+        self.check_by_statistics(new)
         
-        
+
+        self.check_by_comparison(old,new)
+
+        self.loged_each_instance(new)
+
         self.expire_time_check(old,new)
 
 
