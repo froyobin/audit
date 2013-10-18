@@ -86,8 +86,12 @@ class virtual_mach:
         except:
             self.terminated=True
             return []
-        
-        domain_info = self.instance_info_list[i].domainx.info()
+        try:
+            domain_info = self.instance_info_list[i].domainx.info()
+        except:
+            self.terminated = True
+            return []
+        self.instance_info_list[i].machine_state= domain_info[0]
         self.instance_info_list[i].cpu_time = ((domain_info[4])/1000000000L)
         self.instance_info_list[i].log_message += '\nCPU Time: %d (S)' %self.instance_info_list[i].cpu_time
         self.instance_info_list[i].log_message+="\nInstance Name :"
@@ -101,7 +105,8 @@ class virtual_mach:
         self.instance_info_list[i].domain_name = after_xml.findtext('name')
         self.instance_info_list[i].log_message += self.instance_info_list[i].domain_name 
         try:
-            self.instance_info_list[i].machine_state= self.instance_info_list[i].domainx.isActive()
+            #self.instance_info_list[i].machine_state= self.instance_info_list[i].domainx.isActive()
+            pass
         except:
             self.terminated=True
             return []

@@ -185,9 +185,9 @@ class core_work:
             store_list.append(diskinfo['rd_speed'])
             mydb.store_in_db_disk_state(store_list)
             if state == 5:
-                self.myloghandle.write_log( "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname'],"INFO")
+                self.myloghandle.write_log( "FIND NEW DISK %s into DATABASE SUCCESSFULLY"  % (diskinfo['diskname']),"INFO")
             if state == -1:
-                self.myloghandle.write_log("DISCONNECT DISK %s into DATABASE SUCCESSFULLY"  % diskinfo['diskname'],"INFO")
+                self.myloghandle.write_log("DISCONNECT DISK %s into DATABASE SUCCESSFULLY"  % (diskinfo['diskname']),"INFO")
         mydb.disconnect()
 
     def handleinstance(self,detail,state):
@@ -275,9 +275,18 @@ class core_work:
             #########disk add remove check END#############
             if disk_status_add_remove == True:
                 continue
+            ####most interesting way of handle data
+            checklist=['machine_state','instance_memtotal','instance_memcur','cpu_time',]
+            for j in checklist:
+                mstrnew = 'a=new[%d].%s' %(i,j)
+                exec mstrnew
+                mstrold = 'b=old[%d].%s' %(i,j)
+                exec mstrold
+                if a!=b:
+                   self.myloghandle.write_log(("%s FROM %d TO %d"%(j,b,a)),"INFO")
+                   self.add_to_log_list(i)
+                break
             
-            
-
 
 
     
@@ -305,7 +314,6 @@ class core_work:
                 continue
         # new we check the network
             for netcard in new[i].net_card_info_list:
-                print netcard[9]
                 if (netcard[8]>self.MAXNTRD) or (netcard[9]>self.MAXNTWR):
                     net_found=True
                     self.myloghandle.write_log("exceed net speed detected!","INFO")
