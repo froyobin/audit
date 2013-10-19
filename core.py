@@ -46,23 +46,23 @@ class core_work:
         #self.speedparam = paramlist[0][:]
         #self.cpuparam = paramlist[1][:]
         #self.diskparam = paramlist[2][:]
-        print self.speedparam
-        print self.cpuparam
-        print self.diskparam
-        print self.netparam
+        #print self.speedparam
+        #print self.cpuparam
+        #print self.diskparam
+        #print self.netparam
         self.myloghandle = log.mylog("audit.log")
 
     def load_all_params(self,cf):
         returnlist=[]
         category = ['speed','cpu','disk','net']
         i=0
-        param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage'],['total_rw_time','read_ops','flush_total_times','rd_total_times',\
-                'rd_kb','flush_ops','wr_ops','wr_kb'],\
+        self.param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage'],['wr_total_times','rd_operations','flush_total_times',\
+                'rd_total_times','rd_bytes','flush_operations','wr_operations','wr_bytes'],\
                 ['rx_kb','rx_packages','rx_error','tx_kb','tx_package','tx_error','rx_drop','tx_drop']]
-        for paramlist in param_list_all:
+        for paramlist in self.param_list_all:
             innlist=[]
             for param in paramlist:
-                innlist.append(string.atoi(cf.get(category[i],param)))
+                innlist.append(string.atol(cf.get(category[i],param)))
             i = i+1
             returnlist.append(innlist)
         return returnlist
@@ -296,23 +296,23 @@ class core_work:
 
 
     def check_by_comparison(self,old,new):
-        disk_status_add_remove=False
+        #if we exit the lopp we shoud find if we have found the intance, it it is we should check the next instance immediately
+        flag = False
         for i in range(0,len(new)):
-        
+            if self.is_in_list_already(i) == True:
+                continue
             #########disk add remove check#############
             if len(new[i].disk_stat)>len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME ADD DETECTED","INFO")
                 self.add_to_log_list(i)
-                disk_status_add_remove = True
                 continue
             if len(new[i].disk_stat)<len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME REMOVE DETECTED","INFO")
                 self.add_to_log_list(i)
-                disk_status_add_remove = True
                 continue
             #########disk add remove check END#############
-            if disk_status_add_remove == True:
-                continue
+            
+            
             ####most interesting way of handle data
             checklist=['machine_state','instance_memtotal','instance_memcur','cpu_time',]
             for j in checklist:
@@ -323,11 +323,42 @@ class core_work:
                 if a!=b:
                    self.myloghandle.write_log(("%s FROM %d TO %d"%(j,b,a)),"INFO")
                    self.add_to_log_list(i)
+                   flag = True
                 break
-            
+            if flag == True:
+                continue
+
+            ###########check disk ########################
+            flag = False
+            checklist = self.param_list_all[2][:]
+            for j in range(0,len(new[i].disk_stat)):
+                olddisk = old[i].disk_stat[j]
+                newdisk = new[i].disk_stat[j]
+                for p in range(0,len(checklist)):
+                    mstrnew = 'a=newdisk[\'%s\']' %(checklist[p])
+                    exec mstrnew
+                    mstrold = 'b=olddisk[\'%s\']' %(checklist[p])
+                    exec mstrold
+                    if abs(a-b)> self.diskparam[p]:
+                        self.myloghandle.write_log(("%s FROM %d TO %d"%(checklist[p],b,a)),"INFO")
+                        self.add_to_log_list(i)
+                        flag = True
+                        break
+                if flag == True:
+                    break
+            if flag == True:
+                break
+            flag = False
 
 
     
+
+    def is_in_list_already(self,i):
+        try :
+            self.need_loged_instance.index(i)
+        except ValueError:
+            return False
+        return True
     def add_to_log_list(self,i):
         try :
             self.need_loged_instance.index(i)
@@ -340,6 +371,8 @@ class core_work:
         disk_found=False
         net_found = False
         for i in range(0,len(new)):
+            if self.is_in_list_already(i)== True:
+                continue
             #check disk first
             for disk in new[i].disk_stat:
                 if disk['wr_speed']>self.speedparam[1] or disk['rd_speed'] >self.speedparam[0]:
