@@ -321,6 +321,13 @@ class virtual_mach:
                ret['diskname']=disk_data['dev']
                ret['wr_speed']= string.atof('%.2f'%((ret['wr_bytes']-retpre['wr_bytes'])/120000L))
                ret['rd_speed']= string.atof('%.2f'%((ret['rd_bytes']-retpre['rd_bytes'])/120000L))
+               
+               #hey we have an operation on data
+               ret['wr_total_times'] = ret['wr_total_times']/1000000000L
+               ret['flush_total_times'] = ret['flush_total_times']/10000L
+               ret['rd_total_times'] = ret['rd_total_times']/10000L
+               ret['rd_bytes'] = ret['rd_bytes']/1000L
+               ret['wr_bytes'] = ret['wr_bytes']/1000L
                self.instance_info_list[i].disk_stat.append(ret)
            except:
                s=sys.exc_info()
