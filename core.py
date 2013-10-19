@@ -58,7 +58,7 @@ class core_work:
         i=0
         self.param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage'],['wr_total_times','rd_operations','flush_total_times',\
                 'rd_total_times','rd_bytes','flush_operations','wr_operations','wr_bytes'],\
-                ['rx_kb','rx_packages','rx_error','tx_kb','tx_package','tx_error','rx_drop','tx_drop']]
+                ['rx_kb','rx_packages','rx_error','rx_drop','tx_kb','tx_package','tx_error','tx_drop']]
         for paramlist in self.param_list_all:
             innlist=[]
             for param in paramlist:
@@ -165,11 +165,11 @@ class core_work:
             net_card_info = detail.net_card_info_list[i]
             store_list.append(detail.instance_uuid)
             store_list.append(detail.log_time)
-            store_list.append(net_card_info[0]/1000)
+            store_list.append(net_card_info[0])
             store_list.append(net_card_info[1])
             store_list.append(net_card_info[2])
             store_list.append(net_card_info[3])
-            store_list.append(net_card_info[4]/1000)
+            store_list.append(net_card_info[4])
             store_list.append(net_card_info[5])
             store_list.append(net_card_info[6])
             store_list.append(net_card_info[7])
@@ -347,11 +347,34 @@ class core_work:
                 if flag == True:
                     break
             if flag == True:
-                break
+                continue
             flag = False
 
 
     
+            ###########check net ########################
+            
+            checklist = self.param_list_all[3][:]
+            for j in range(0,len(new[i].net_card_info_list)):
+                oldnet = old[i].net_card_info_list[j]
+                newnet = new[i].net_card_info_list[j]
+                print newnet[4]
+                print oldnet[4]
+                for p in range(0,len(checklist)):
+                    if abs(newnet[p]-oldnet[p])> self.netparam[p]:
+                        self.myloghandle.write_log(("%s FROM %d TO %d"%(checklist[p],oldnet[p],newnet[p])),"INFO")
+                        self.add_to_log_list(i)
+                        flag = True
+                        break
+                if flag == True:
+                    break
+            if flag == True:
+                continue
+            flag = False
+
+
+
+
 
     def is_in_list_already(self,i):
         try :

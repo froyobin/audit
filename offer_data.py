@@ -191,7 +191,11 @@ class virtual_mach:
             for i in range(0,len(network_info)):
                 self.instance_info_list[j].log_message += '\n'+item_list[i]+str(network_info[i])
                 #net_card_info[i] = str(network_info[i])
-                net_card_info[i] = (network_info[i])
+                if i==0 or i ==4:
+                    value = network_info[i]/1000L
+                else:
+                    value = network_info[i]
+                net_card_info[i] = value
 
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
             self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
