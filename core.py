@@ -29,21 +29,40 @@ class core_work:
         
         self.interval = string.atoi(cf.get("speed","interval"))
         paramlist=self.load_all_params(cf)
-        self.speedparam = paramlist[0][:]
-        self.cpuparam = paramlist[1][:]
+
+        category = ['speed','cpu','disk','net']
+        i=0
+        for param in paramlist:
+            mstr = 'a=self.%sparam=param[:]' %(category[i])
+            exec mstr
+            i = i+1
+        ####most interesting way of handle data
+           # for j in checklist:
+           #     mstrnew = 'a=new[%d].%s' %(i,j)
+           #     exec mstrnew
+           #     mstrold = 'b=old[%d].%s' %(i,j)
+           #     exec mstrold
+
+        #self.speedparam = paramlist[0][:]
+        #self.cpuparam = paramlist[1][:]
+        #self.diskparam = paramlist[2][:]
         print self.speedparam
         print self.cpuparam
+        print self.diskparam
+        print self.netparam
         self.myloghandle = log.mylog("audit.log")
 
     def load_all_params(self,cf):
         returnlist=[]
-        categroy = ["speed","CPU"]
+        category = ['speed','cpu','disk','net']
         i=0
-        param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage']]
+        param_list_all = [['maxdkrd','maxdkwr','maxntrd','maxntwr'],['cputime','cpuusage'],['total_rw_time','read_ops','flush_total_times','rd_total_times',\
+                'rd_kb','flush_ops','wr_ops','wr_kb'],\
+                ['rx_kb','rx_packages','rx_error','tx_kb','tx_package','tx_error','rx_drop','tx_drop']]
         for paramlist in param_list_all:
             innlist=[]
             for param in paramlist:
-                innlist.append(string.atoi(cf.get(categroy[i],param)))
+                innlist.append(string.atoi(cf.get(category[i],param)))
             i = i+1
             returnlist.append(innlist)
         return returnlist
@@ -415,5 +434,7 @@ def signalhandle(signum,fram):
     sys.exit()
 if __name__ == '__main__':
     signal.signal(signal.SIGINT,signalhandle)
+    signal.signal(signal.SIGHUP,signalhandle)
+    signal.signal(signal.SIGTERM,signalhandle)
     do_work = core_work()
     do_work.core_loop()
