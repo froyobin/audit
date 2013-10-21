@@ -243,7 +243,7 @@ class core_work:
         store_list.append(detail.cpu_num)
         store_list.append(detail.hardware[0][0].split(':')[1])
         store_list.append(detail.hardware[0][1].split(':')[1])
-        store_list.append(detail.cpu_time)
+        store_list.append(detail.cpuusage)
         mydb = audit_db.auditDB(self.HOST_IP,self.USER,self.PASSWD,self.PORT,self.DB)
         mydb.store_in_db_static(store_list)
         mydb.disconnect()
@@ -255,9 +255,6 @@ class core_work:
             self.myloghandle.write_log("GENERAL INSTANCE %s INFO" % detail.instance_uuid,"INFO")
 
         
-        
-
-
 
 
     def debug_log(self,msg):
@@ -289,7 +286,7 @@ class core_work:
     def expire_time_check(self,old,new):
         timenow = time.time()
         for (k,updatedtime) in self.ins_timestamp.items():
-            if timenow-updatedtime >(60*self.interval):
+            if timenow-updatedtime >(10*self.interval):
                 self.log_instance(k)
             else:
                 continue
@@ -358,8 +355,8 @@ class core_work:
             for j in range(0,len(new[i].net_card_info_list)):
                 oldnet = old[i].net_card_info_list[j]
                 newnet = new[i].net_card_info_list[j]
-                print newnet[4]
-                print oldnet[4]
+                #print newnet
+                #print oldnet[4]
                 for p in range(0,len(checklist)):
                     if abs(newnet[p]-oldnet[p])> self.netparam[p]:
                         self.myloghandle.write_log(("%s FROM %d TO %d"%(checklist[p],oldnet[p],newnet[p])),"INFO")
@@ -370,6 +367,8 @@ class core_work:
                     break
             if flag == True:
                 continue
+            
+            
             flag = False
 
 
@@ -420,7 +419,11 @@ class core_work:
 
     def loged_each_instance(self,new):
         
-        print self.need_loged_instance
+        self.myloghandle.write_log(self.need_loged_instance,"INFO")
+        
+        for each in self.need_loged_instance:
+            uuid = new[each].instance_uuid
+            self.log_instance(uuid)
 
         del(self.need_loged_instance[:])
 
