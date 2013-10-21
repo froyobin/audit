@@ -232,7 +232,7 @@ class virtual_mach:
         self.instance_info_list[i].total_vcpu_value = dic_value[0]['cpu_time']
         usage = 0
         #if self.instance_info_list[i].cpustatflag == 0:
-        usage =  (self.instance_info_list[i].total_vcpu_value-self.instance_info_list[i].total_vcpu_valuepre)//100000
+        usage =  (self.instance_info_list[i].total_vcpu_value-self.instance_info_list[i].total_vcpu_valuepre)//1000000L
    
         #dic_value_list =  self.conn.getCPUStats(0,0)
         #print dic_value_list

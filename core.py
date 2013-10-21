@@ -16,6 +16,23 @@ class core_work:
         self.pre= offer_data.virtual_mach()
         self.need_loged_instance = []
         self.ins_timestamp={}
+        ####most interesting way of handle data
+           # for j in checklist:
+           #     mstrnew = 'a=new[%d].%s' %(i,j)
+           #     exec mstrnew
+           #     mstrold = 'b=old[%d].%s' %(i,j)
+           #     exec mstrold
+
+        #self.speedparam = paramlist[0][:]
+        #self.cpuparam = paramlist[1][:]
+        #self.diskparam = paramlist[2][:]
+        #print self.speedparam
+        #print self.cpuparam
+        #print self.diskparam
+        #print self.netparam
+        self.myloghandle = log.mylog("audit.log")
+
+    def dynamic_read_parameters(self):
         cf=ConfigParser.ConfigParser()
         cf.read('config.ini')
         
@@ -36,21 +53,8 @@ class core_work:
             mstr = 'a=self.%sparam=param[:]' %(category[i])
             exec mstr
             i = i+1
-        ####most interesting way of handle data
-           # for j in checklist:
-           #     mstrnew = 'a=new[%d].%s' %(i,j)
-           #     exec mstrnew
-           #     mstrold = 'b=old[%d].%s' %(i,j)
-           #     exec mstrold
 
-        #self.speedparam = paramlist[0][:]
-        #self.cpuparam = paramlist[1][:]
-        #self.diskparam = paramlist[2][:]
-        #print self.speedparam
-        #print self.cpuparam
-        #print self.diskparam
-        #print self.netparam
-        self.myloghandle = log.mylog("audit.log")
+
 
     def load_all_params(self,cf):
         returnlist=[]
@@ -286,7 +290,7 @@ class core_work:
     def expire_time_check(self,old,new):
         timenow = time.time()
         for (k,updatedtime) in self.ins_timestamp.items():
-            if timenow-updatedtime >(10*self.interval):
+            if timenow-updatedtime >(60*self.interval):
                 self.log_instance(k)
             else:
                 continue
@@ -355,8 +359,6 @@ class core_work:
             for j in range(0,len(new[i].net_card_info_list)):
                 oldnet = old[i].net_card_info_list[j]
                 newnet = new[i].net_card_info_list[j]
-                #print newnet
-                #print oldnet[4]
                 for p in range(0,len(checklist)):
                     if abs(newnet[p]-oldnet[p])> self.netparam[p]:
                         self.myloghandle.write_log(("%s FROM %d TO %d"%(checklist[p],oldnet[p],newnet[p])),"INFO")
@@ -395,6 +397,13 @@ class core_work:
         for i in range(0,len(new)):
             if self.is_in_list_already(i)== True:
                 continue
+
+
+            if new[i].cpuusage > self.cpuparam[1]:
+                self.add_to_log_list(i)
+                self.myloghandle.write_log("exceed cpuusage detected!","INFO")
+                continue
+
             #check disk first
             for disk in new[i].disk_stat:
                 if disk['wr_speed']>self.speedparam[1] or disk['rd_speed'] >self.speedparam[0]:
@@ -418,8 +427,8 @@ class core_work:
         #return self.need_loged_instance
 
     def loged_each_instance(self,new):
-        
-        self.myloghandle.write_log(self.need_loged_instance,"INFO")
+        if len(self.need_loged_instance) >0:
+            self.myloghandle.write_log("NEED TO LOG:"+str(self.need_loged_instance),"INFO")
         
         for each in self.need_loged_instance:
             uuid = new[each].instance_uuid
@@ -468,18 +477,17 @@ class core_work:
         while True:
             if self.first ==True:
                 self.first = False
+                self.dynamic_read_parameters()
                 pre = offer_instance_data()
                 self.old = pre.instance_info_list
                 self.create_timestamp()
                 self.myloghandle.write_log("System started.....","INFO")
                 continue
             else:
+                self.dynamic_read_parameters()
                 tmp = offer_instance_data()
                 self.new = tmp.instance_info_list
                 
-                """
-                 do something
-                """
                 self.check_instance_start_stop(tmp,pre)
 
                 pre= tmp
