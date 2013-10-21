@@ -30,11 +30,11 @@ class core_work:
         #print self.cpuparam
         #print self.diskparam
         #print self.netparam
-        self.myloghandle = log.mylog("audit.log")
+        self.myloghandle = log.mylog("/var/log/cloud_audit.log")
 
     def dynamic_read_parameters(self):
         cf=ConfigParser.ConfigParser()
-        cf.read('config.ini')
+        cf.read('/etc/auditd/config.ini')
         
         self.HOST_IP = cf.get("database","HOST_IP")
         self.USER = cf.get("database","USER")
@@ -177,8 +177,8 @@ class core_work:
             store_list.append(net_card_info[5])
             store_list.append(net_card_info[6])
             store_list.append(net_card_info[7])
-            store_list.append(net_card_info[8]/1000)
-            store_list.append(net_card_info[9]/1000)
+            store_list.append(net_card_info[8])
+            store_list.append(net_card_info[9])
             store_list.append(card_names['dev'])
             store_list.append(card_names['name'])
             store_list.append(state)
@@ -204,14 +204,14 @@ class core_work:
         for diskinfo in detail.disk_stat:
             store_list = []
             store_list.append(detail.instance_uuid)
-            store_list.append((diskinfo['wr_total_times'])/1000000000L)
+            store_list.append((diskinfo['wr_total_times']))
             store_list.append(diskinfo['rd_operations'])
-            store_list.append((diskinfo['flush_total_times'])/10000L)
-            store_list.append(diskinfo['rd_total_times']/10000L)
-            store_list.append(diskinfo['rd_bytes']/1000L)
+            store_list.append((diskinfo['flush_total_times']))
+            store_list.append(diskinfo['rd_total_times'])
+            store_list.append(diskinfo['rd_bytes'])
             store_list.append(diskinfo['flush_operations'])
             store_list.append(diskinfo['wr_operations'])
-            store_list.append(diskinfo['wr_bytes']/1000L)
+            store_list.append(diskinfo['wr_bytes'])
             store_list.append(diskinfo['diskname'])
             store_list.append(state)
             """

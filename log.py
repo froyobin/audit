@@ -18,7 +18,7 @@ class mylog:
         self.ch.setFormatter(self.formatter)
 
         self.logger.addHandler(self.fh)
-        self.logger.addHandler(self.ch)
+        #self.logger.addHandler(self.ch)
     def write_log(self,msg,level):
         case_dic = {'DEBUG':lambda :self.logger.debug(self,msg),\
                 'INFO':lambda :self.logger.info(msg),\

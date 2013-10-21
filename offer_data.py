@@ -198,10 +198,10 @@ class virtual_mach:
                 net_card_info[i] = value
 
             self.instance_info_list[j].net_need_update=self.do_aut_net(network_info[0],rx_b,network_info[4],tx_b)
-            self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/2)
-            net_card_info[8]  = string.atof('%.2f' %((network_info[0]-rx_b)/60/2))
-            net_card_info[9] =  string.atof('%.2f' %((network_info[4]-tx_b)/60/2))
-            self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/2)
+            self.instance_info_list[j].log_message += "\nrx rate is %d Kbytes "%((network_info[0]-rx_b)/60/20)
+            net_card_info[8]  = string.atof('%.2f' %((network_info[0]-rx_b)/60/20))
+            net_card_info[9] =  string.atof('%.2f' %((network_info[4]-tx_b)/60/20))
+            self.instance_info_list[j].log_message += "\ntx rate is %d Kbytes"%((network_info[4]-tx_b)/60/20)
             self.instance_info_list[j].log_message +="\n................................."
             self.instance_info_list[j].net_card_info_list.append(net_card_info)
     def write_log(self,i):
@@ -323,8 +323,8 @@ class virtual_mach:
                time.sleep(2)
                ret = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
                ret['diskname']=disk_data['dev']
-               ret['wr_speed']= string.atof('%.2f'%((ret['wr_bytes']-retpre['wr_bytes'])/120000L))
-               ret['rd_speed']= string.atof('%.2f'%((ret['rd_bytes']-retpre['rd_bytes'])/120000L))
+               ret['wr_speed']= string.atof('%.2f'%((ret['wr_bytes']-retpre['wr_bytes'])/1200L))
+               ret['rd_speed']= string.atof('%.2f'%((ret['rd_bytes']-retpre['rd_bytes'])/1200L))
                
                #hey we have an operation on data
                ret['wr_total_times'] = ret['wr_total_times']/1000000000L
