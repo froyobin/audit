@@ -16,6 +16,7 @@ class core_work:
         self.pre= offer_data.virtual_mach()
         self.need_loged_instance = []
         self.ins_timestamp={}
+        self.disk_state = "INUSE"
         ####most interesting way of handle data
            # for j in checklist:
            #     mstrnew = 'a=new[%d].%s' %(i,j)
@@ -117,7 +118,15 @@ class core_work:
             self.net_need_handle(instance,"ATTACHED")
         if state == "GENERAL":
             self.instance_need_handle(instance,"NORMAL")
-            self.disk_need_handle(instance,"INUSE")
+            if self.disk_state == "ATTACH":
+                self.disk_need_handle(instance,"ATTACHED")
+            else :
+                if self.disk_state =="REMOVE":
+
+                    self.disk_need_handle(instance,"DISCONNECT")
+                else:
+
+                    self.disk_need_handle(instance,"INUSE")
             self.net_need_handle(instance,"INUSE")
 
 
@@ -140,7 +149,7 @@ class core_work:
                     
                 
             except IndexError:
-                    self.myloghandle.write_log("ADD","DEBUG");
+                    self.myloghandle.write_log("ADD","INFO");
                     self.newaddinstance(new[i],"NEW")
                     #self.ins_timestamp[new[i].instance_uuid]=time.time()
                     self.updatetime(new[i].instance_uuid)
@@ -305,10 +314,12 @@ class core_work:
             #########disk add remove check#############
             if len(new[i].disk_stat)>len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME ADD DETECTED","INFO")
+                self.disk_state = "ATTACH"
                 self.add_to_log_list(i)
                 continue
             if len(new[i].disk_stat)<len(old[i].disk_stat):
                 self.myloghandle.write_log("VOLUME REMOVE DETECTED","INFO")
+                self.disk_state = "REMOVE"
                 self.add_to_log_list(i)
                 continue
             #########disk add remove check END#############
@@ -458,9 +469,11 @@ class core_work:
         if len(self.new) > len(self.old):
             number = len(self.new) - len(self.old)
             self.instance_to_db_prepare(tmp.instance_info_list,number)
+            self.myloghandle.write_log("ADD INSTANCE","INFO")
         else:
             if len(self.new) < len(self.old):
                 self.delinstance_to_db_prepare()
+                self.myloghandle.write_log("DEC INSTANCE","INFO")
             else:
                 self.inspect_each_instance(self.old,self.new)
                 #print tmp.instance_info_list[1].hardware[0][0].split(':')[1]
@@ -485,7 +498,10 @@ class core_work:
                 continue
             else:
                 self.dynamic_read_parameters()
-                tmp = offer_instance_data()
+                while True:
+                    tmp = offer_instance_data()
+                    if tmp.return_status == True:
+                        break;
                 self.new = tmp.instance_info_list
                 
                 self.check_instance_start_stop(tmp,pre)

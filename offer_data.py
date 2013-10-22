@@ -56,6 +56,7 @@ class virtual_mach:
         #self.total_pcpu_value=0
         #self.total_vcpu_value=0
         self.instance_info_list=[]
+        self.return_status=False
 
         if self.conn == None:
             print 'Failed to open connection to the hypervisor'
@@ -371,6 +372,11 @@ def offer_instance_data():
             main_w.handle_block_devices(i)
         if main_w.terminated == False:
             main_w.write_log(i)
+        if main_w.terminated == True:
+            main_w.return_status = False
+            return main_w
+    
+    main_w.return_status = True
     return main_w
 
 
