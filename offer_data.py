@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import lxml.html as lh
 import sys
 import string
+import thread
 #conn = libvirt.open(None)
 class instance_info:
     def __init__(self):
@@ -160,7 +161,7 @@ class virtual_mach:
        #devices_root = root.find('devices')
 
         return [] ##*****only return the last net card information********
-    def net_card_statistic(self,j,net_cards):
+    def net_card_statistic(self,j):
         #net_card_info = [[0 for jj in xrange(0,10)] for ii in xrange(0,len(self.instance_info_list[j].net_cards))]
         for names in self.instance_info_list[j].net_cards:
             self.do_net_card_statistic(j,names['dev'])
@@ -212,6 +213,7 @@ class virtual_mach:
            #sys.stdout.flush()
            if __name__=='__main__':
                print self.instance_info_list[i].log_message
+               #pass
            else:
                pass
     def cpu_mem_statistic(self,i):
@@ -356,22 +358,24 @@ class virtual_mach:
 
 
 
-
+## this modification may occur bug in core.py when adding or removing new devices
 def offer_instance_data():
     main_w = virtual_mach()
     list_doms = main_w.list_dom_ID()
     main_w.create_instances_space_data(list_doms)
     for i in range(0,len(list_doms)):
-        if main_w.terminated == False:
-            net_card_name = main_w.do_log_routine(i,list_doms[i])
-        if main_w.terminated == False:
-            main_w.net_card_statistic(i,net_card_name)
-        if main_w.terminated == False:
-            main_w.cpu_mem_statistic(i)
-        if main_w.terminated == False:
-            main_w.handle_block_devices(i)
-        if main_w.terminated == False:
-            main_w.write_log(i)
+        #if main_w.terminated == False:
+        #    main_w.do_log_routine(i,list_doms[i])
+        #if main_w.terminated == False:
+        #    main_w.net_card_statistic(i)
+        #if main_w.terminated == False:
+        #    main_w.cpu_mem_statistic(i)
+        #if main_w.terminated == False:
+        #    main_w.handle_block_devices(i)
+        #if main_w.terminated == False:
+        #    main_w.write_log(i)
+        thread.start_new_thread(gather_info,(main_w,i))
+
         if main_w.terminated == True:
             main_w.return_status = False
             return main_w
@@ -380,23 +384,41 @@ def offer_instance_data():
     return main_w
 
 
+def gather_info(main_w,i):
+    if main_w.terminated == False:
+        main_w.do_log_routine(i,list_doms[i])
+    if main_w.terminated == False:
+        main_w.net_card_statistic(i)
+    if main_w.terminated == False:
+        main_w.cpu_mem_statistic(i)
+    if main_w.terminated == False:
+        main_w.handle_block_devices(i)
+    if main_w.terminated == False:
+        main_w.write_log(i)
+
 
 if __name__ == '__main__':
-    
+    j=0
     while True:
-        offer_instance_data()
+        j+=1
         main_w = virtual_mach()
         list_doms = main_w.list_dom_ID()
         main_w.create_instances_space_data(list_doms)
         for i in range(0,len(list_doms)):
-            if main_w.terminated == False:
-                net_card_name = main_w.do_log_routine(i,list_doms[i])
-            if main_w.terminated == False:
-                main_w.net_card_statistic(i,net_card_name)
-            if main_w.terminated == False:
-                main_w.cpu_mem_statistic(i)
-            if main_w.terminated == False:
-                main_w.handle_block_devices(i)
-            if main_w.terminated == False:
-               main_w.write_log(i)
+            
+            #thread.start_new_thread()
+            #gather_info(main_w,i)
+            thread.start_new_thread(gather_info,(main_w,i))
+            #if main_w.terminated == False:
+            #    main_w.do_log_routine(i,list_doms[i])
+            #if main_w.terminated == False:
+            #    main_w.net_card_statistic(i)
+            #if main_w.terminated == False:
+            #    main_w.cpu_mem_statistic(i)
+            #if main_w.terminated == False:
+            #    main_w.handle_block_devices(i)
+            #if main_w.terminated == False:
+            #   main_w.write_log(i)
         time.sleep(3)
+        if j>1:
+            break
