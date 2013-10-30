@@ -215,6 +215,7 @@ class virtual_mach:
                print self.instance_info_list[i].log_message
                #pass
            else:
+               #print self.instance_info_list[i].log_message
                pass
     def cpu_mem_statistic(self,i):
         #This is  statistic only for virtual machine
@@ -374,17 +375,18 @@ def offer_instance_data():
         #    main_w.handle_block_devices(i)
         #if main_w.terminated == False:
         #    main_w.write_log(i)
-        thread.start_new_thread(gather_info,(main_w,i))
-
+        thread.start_new_thread(gather_info,(main_w,i,list_doms))
+#This 7 seconds may cause bugs as we think now 7 seconds is enough for task finish
         if main_w.terminated == True:
+            time.sleep(6)
             main_w.return_status = False
             return main_w
-    
+    time.sleep(6)
     main_w.return_status = True
     return main_w
 
 
-def gather_info(main_w,i):
+def gather_info(main_w,i,list_doms):
     if main_w.terminated == False:
         main_w.do_log_routine(i,list_doms[i])
     if main_w.terminated == False:
