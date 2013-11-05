@@ -410,7 +410,7 @@ if __name__ == '__main__':
             
             #thread.start_new_thread()
             #gather_info(main_w,i)
-            thread.start_new_thread(gather_info,(main_w,i))
+            thread.start_new_thread(gather_info,(main_w,i,list_doms))
             #if main_w.terminated == False:
             #    main_w.do_log_routine(i,list_doms[i])
             #if main_w.terminated == False:
