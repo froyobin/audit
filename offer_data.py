@@ -324,6 +324,12 @@ class virtual_mach:
            disk_data = disks[2].attrib
            try:
                retpre = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
+           except:
+               s=sys.exc_info()
+               print "error %s at line %d" % (s[1],s[2].tb_lineno)
+               self.terminated = True
+               return
+	   try:
                time.sleep(2)
                ret = self.instance_info_list[i].domainx.blockStatsFlags(disk_data['dev'],0)
                ret['diskname']=disk_data['dev']
