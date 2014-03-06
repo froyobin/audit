@@ -9,7 +9,7 @@ import log
 import string
 import signal
 import os
-
+CONFIG_LOCATE="./config.ini"
 class core_work:
     first = True
     def __init__(self):
@@ -35,7 +35,7 @@ class core_work:
 
     def dynamic_read_parameters(self):
         cf=ConfigParser.ConfigParser()
-        cf.read('/etc/auditd/config.ini')
+        cf.read(CONFIG_LOCATE)
         
         self.HOST_IP = cf.get("database","HOST_IP")
         self.USER = cf.get("database","USER")
@@ -456,8 +456,8 @@ class core_work:
             
         self.check_by_statistics(new)
         
-
-        self.check_by_comparison(old,new)
+	#########FIXME##########yubin##############
+       # self.check_by_comparison(old,new)
 
         self.loged_each_instance(new)
 
@@ -484,7 +484,8 @@ class core_work:
     
     def create_timestamp(self):
         for instance in self.old:
-            self.ins_timestamp[instance.instance_uuid] = time.time()
+            timestp = time.time()
+            self.ins_timestamp[instance.instance_uuid] = timestp
     def core_loop(self):
         #pre = offer_data.virtual_mach()
         while True:
